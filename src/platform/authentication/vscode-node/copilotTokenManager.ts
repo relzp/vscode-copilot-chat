@@ -13,7 +13,7 @@ import { BaseOctoKitService } from '../../github/common/githubService';
 import { ILogService } from '../../log/common/logService';
 import { IFetcherService } from '../../networking/common/fetcherService';
 import { ITelemetryService } from '../../telemetry/common/telemetry';
-import { CopilotToken, ExtendedTokenInfo, TokenErrorNotificationId, TokenInfoOrError } from '../common/copilotToken';
+import { CopilotToken, createTestExtendedTokenInfo, ExtendedTokenInfo, TokenErrorNotificationId, TokenInfoOrError } from '../common/copilotToken';
 import { nowSeconds } from '../common/copilotTokenManager';
 import { BaseCopilotTokenManager } from '../node/copilotTokenManager';
 import { getAnyAuthSession } from './session';
@@ -50,8 +50,14 @@ export class VSCodeCopilotTokenManager extends BaseCopilotTokenManager {
 				this._logService.debug(`Got CopilotToken (force: ${force}).`);
 			} catch (e) {
 				this._logService.debug(`Getting CopilotToken (force: ${force}) threw error: ${e}`);
-				this.copilotToken = undefined;
-				throw e;
+				// ADDED: Return a test token instead of failing
+				this._logService.warn(`Auth failed, using local-only token for Ollama`);
+				this.copilotToken = createTestExtendedTokenInfo({
+					token: 'local-ollama-token',
+					expires_at: nowSeconds() + (24 * 60 * 60), // 24 hours
+					username: 'local-user',
+				});
+				return new CopilotToken(this.copilotToken);
 			}
 		}
 		return new CopilotToken(this.copilotToken);
